@@ -1,0 +1,5 @@
+Model,F1-Macro,ROC-AUC,Precision (macro),Recall (macro)
+random_forest,0.8113,0.9167,0.8054,0.8192
+lightgbm,0.7844,0.9043,0.7742,0.7981
+xgboost,0.7642,0.9065,0.7608,0.776
+logistic_regression,0.7014,0.878,0.6918,0.7157

@@ -26,19 +26,15 @@ env/
 .env
 
 # Data (keep raw, ignore large processed files)
-data/processed/*.csv
 data/processed/*.pkl
 !data/processed/.gitkeep
 
-# Models (binary files)
-models/*.joblib
-models/*.pkl
+# Models
 !models/.gitkeep
 
 # Outputs
 outputs/*.png
 outputs/*.pdf
-outputs/*.csv
 !outputs/.gitkeep
 
 # OS
