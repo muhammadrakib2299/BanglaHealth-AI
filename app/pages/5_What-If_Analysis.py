@@ -16,14 +16,8 @@ st.set_page_config(page_title="What-If Analysis", page_icon="🔬", layout="wide
 from app.styles import ERP_CSS
 st.markdown(ERP_CSS, unsafe_allow_html=True)
 
-st.markdown("""
-<div class="toolbar">
-    <div class="tb-title">🔬 What-If Analysis</div>
-    <div class="tb-right">Adjust parameters &rarr; watch prediction change live</div>
-</div>
-""", unsafe_allow_html=True)
-
-BG = {"Low": "#059669", "Medium": "#D97706", "High": "#DC2626"}
+st.header("What-If Analysis")
+st.caption("Adjust parameters and watch the prediction change in real-time")
 
 with st.sidebar:
     st.markdown("**Configuration**")
@@ -39,7 +33,7 @@ try:
         model = load_model(model_name, "diabetes")
         scaler = load_scaler("diabetes")
 
-        st.markdown('<div class="panel"><div class="panel-header">Parameter Controls — Diabetes</div><div class="panel-body">', unsafe_allow_html=True)
+        st.subheader("Parameters — Diabetes")
         c1, c2, c3, c4 = st.columns(4)
         with c1:
             pregnancies = st.slider("Pregnancies", 0, 17, 3, key="w_p")
@@ -53,7 +47,6 @@ try:
         with c4:
             dpf = st.slider("Diabetes Pedigree", 0.0, 3.0, 0.5, 0.01, key="w_dpf")
             age = st.slider("Age", 1, 120, 35, key="w_age")
-        st.markdown('</div></div>', unsafe_allow_html=True)
 
         patient = add_diabetes_features(pd.DataFrame([{
             "Pregnancies": pregnancies, "Glucose": glucose, "BloodPressure": bp,
@@ -67,7 +60,7 @@ try:
         model = load_model(model_name, "heart")
         scaler = load_scaler("heart")
 
-        st.markdown('<div class="panel"><div class="panel-header">Parameter Controls — Heart Disease</div><div class="panel-body">', unsafe_allow_html=True)
+        st.subheader("Parameters — Heart Disease")
         c1, c2, c3, c4 = st.columns(4)
         with c1:
             h_age = st.slider("Age", 1, 120, 55, key="w_ha")
@@ -86,7 +79,6 @@ try:
             h_slope = st.selectbox("ST Slope", [0,1,2], format_func=lambda x: ["Up","Flat","Down"][x], key="w_hsl")
             h_ca = st.selectbox("Major Vessels", [0,1,2,3,4], key="w_hca")
             h_thal = st.selectbox("Thalassemia", [0,1,2,3], format_func=lambda x: ["Normal","Fixed","Reversible","Other"][x], key="w_ht")
-        st.markdown('</div></div>', unsafe_allow_html=True)
 
         patient = add_heart_features(pd.DataFrame([{
             "age": h_age, "sex": h_sex, "cp": h_cp, "trestbps": h_bp,
@@ -104,61 +96,62 @@ try:
     pr = model.predict_proba(Xs)[0]
     rl = RISK_LABEL_MAP[rc]
 
-    # Results row
-    r1, r2, r3, r4 = st.columns([1, 1, 1, 2])
+    st.divider()
 
+    # Results
+    r1, r2, r3 = st.columns(3)
     with r1:
-        st.markdown(f"""
-        <div class="risk-result" style="background: {BG[rl]};">
-            <div class="rl-label">Live Result</div>
-            <h2>{rl}</h2>
-        </div>
-        """, unsafe_allow_html=True)
+        st.metric("Risk Level", rl)
+        st.metric("Low", f"{pr[0]:.1%}")
+        st.metric("Medium", f"{pr[1]:.1%}")
+        st.metric("High", f"{pr[2]:.1%}")
 
     with r2:
-        st.markdown(f"""
-        <div class="panel"><div class="kpi">
-            <div class="kpi-value" style="color:#059669;">{pr[0]:.0%}</div><div class="kpi-label">Low</div>
-        </div></div>
-        <div class="panel"><div class="kpi">
-            <div class="kpi-value" style="color:#D97706;">{pr[1]:.0%}</div><div class="kpi-label">Medium</div>
-        </div></div>
-        <div class="panel"><div class="kpi">
-            <div class="kpi-value" style="color:#DC2626;">{pr[2]:.0%}</div><div class="kpi-label">High</div>
-        </div></div>
-        """, unsafe_allow_html=True)
-
-    with r3:
         fig = go.Figure(go.Indicator(
-            mode="gauge+number", value=pr[2]*100, number=dict(suffix="%", font=dict(size=20)),
-            gauge=dict(axis=dict(range=[0,100], tickfont=dict(size=8)), bar=dict(color="#DC2626"),
-                       steps=[dict(range=[0,33], color="#D1FAE5"), dict(range=[33,66], color="#FEF3C7"), dict(range=[66,100], color="#FEE2E2")]),
+            mode="gauge+number", value=pr[2]*100, number=dict(suffix="%", font=dict(size=24)),
+            title=dict(text="High Risk Probability", font=dict(size=13)),
+            gauge=dict(axis=dict(range=[0, 100]),
+                       bar=dict(color="#DC2626"),
+                       steps=[dict(range=[0, 33], color="#D1FAE5"),
+                              dict(range=[33, 66], color="#FEF3C7"),
+                              dict(range=[66, 100], color="#FEE2E2")]),
         ))
-        fig.update_layout(height=180, margin=dict(l=15, r=15, t=10, b=0), paper_bgcolor="white")
+        fig.update_layout(height=250, margin=dict(l=20, r=20, t=40, b=0), paper_bgcolor="white")
         st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
-    with r4:
-        try:
-            from src.explainer import get_shap_explainer
-            explainer = get_shap_explainer(model)
-            sv_obj = explainer(Xs)
-            sv = sv_obj.values[0, :, rc] if len(sv_obj.shape) == 3 else sv_obj.values[0]
-            sdf = pd.DataFrame({"Feature": fcols, "SHAP": sv}).sort_values("SHAP", key=abs, ascending=True)
+    with r3:
+        fig = go.Figure(go.Bar(
+            x=["Low", "Medium", "High"], y=[pr[0], pr[1], pr[2]],
+            marker_color=["#059669", "#D97706", "#DC2626"],
+            text=[f"{p:.0%}" for p in pr], textposition="auto",
+        ))
+        fig.update_layout(height=250, margin=dict(l=10, r=10, t=10, b=10),
+                          yaxis=dict(range=[0, 1]), plot_bgcolor="white", paper_bgcolor="white")
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
 
-            fig = go.Figure(go.Bar(
-                x=sdf["SHAP"], y=sdf["Feature"], orientation="h",
-                marker_color=["#DC2626" if v > 0 else "#059669" for v in sdf["SHAP"]],
-                text=[f"{v:+.3f}" for v in sdf["SHAP"]], textposition="outside", textfont=dict(size=9),
-            ))
-            fig.update_layout(
-                height=max(220, len(fcols)*20), margin=dict(l=0, r=25, t=4, b=4),
-                plot_bgcolor="white", paper_bgcolor="white",
-                xaxis=dict(showgrid=True, gridcolor="#F1F5F9", zeroline=True, zerolinecolor="#CBD5E1", tickfont=dict(size=8)),
-                yaxis=dict(tickfont=dict(size=9)),
-            )
-            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-        except Exception:
-            st.caption("SHAP unavailable")
+    # SHAP
+    st.subheader("Feature Impact (SHAP)")
+    try:
+        from src.explainer import get_shap_explainer
+        explainer = get_shap_explainer(model)
+        sv_obj = explainer(Xs)
+        sv = sv_obj.values[0, :, rc] if len(sv_obj.shape) == 3 else sv_obj.values[0]
+        sdf = pd.DataFrame({"Feature": fcols, "SHAP": sv}).sort_values("SHAP", key=abs, ascending=True)
+
+        fig = go.Figure(go.Bar(
+            x=sdf["SHAP"], y=sdf["Feature"], orientation="h",
+            marker_color=["#DC2626" if v > 0 else "#059669" for v in sdf["SHAP"]],
+            text=[f"{v:+.3f}" for v in sdf["SHAP"]], textposition="outside", textfont=dict(size=10),
+        ))
+        fig.update_layout(
+            height=max(300, len(fcols) * 24), margin=dict(l=0, r=30, t=4, b=4),
+            plot_bgcolor="white", paper_bgcolor="white",
+            xaxis=dict(showgrid=True, gridcolor="#F1F5F9", zeroline=True, zerolinecolor="#CBD5E1"),
+        )
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        st.caption("Red = increases risk. Green = decreases risk. Adjust sliders above to see changes.")
+    except Exception as e:
+        st.warning(f"SHAP unavailable: {e}")
 
 except FileNotFoundError:
     st.error("Models not trained. Run notebooks first.")
