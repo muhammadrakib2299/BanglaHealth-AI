@@ -1,8 +1,9 @@
-"""BanglaHealth-AI — Streamlit Dashboard."""
+"""BanglaHealth-AI — Desktop Dashboard."""
 
 import sys
 from pathlib import Path
 
+import pandas as pd
 import streamlit as st
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -15,320 +16,335 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Global CSS ───────────────────────────────────────────────────────────────
+# ── ERP / Desktop Global CSS ────────────────────────────────────────────────
 st.markdown("""
 <style>
-    /* Hide default Streamlit branding */
+    /* Remove website feel */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
 
-    /* Sidebar styling */
+    /* Tighten main content padding */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 0 !important;
+    }
+
+    /* ── Sidebar: dark nav panel ── */
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0A1628 0%, #0D2137 100%);
+        background: #1E293B;
+        border-right: 1px solid #334155;
+    }
+    [data-testid="stSidebar"] [data-testid="stSidebarNav"] a {
+        border-radius: 4px;
+        margin: 1px 8px;
+        padding: 6px 12px;
     }
     [data-testid="stSidebar"] [data-testid="stSidebarNav"] a span {
-        color: #CBD5E1 !important;
+        color: #94A3B8 !important;
+        font-size: 13px !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stSidebarNav"] a[aria-selected="true"] {
+        background: #2563EB !important;
     }
     [data-testid="stSidebar"] [data-testid="stSidebarNav"] a[aria-selected="true"] span {
         color: #FFFFFF !important;
         font-weight: 600;
     }
-    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {
-        color: #CBD5E1;
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] li,
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] span {
+        color: #CBD5E1 !important;
     }
-    [data-testid="stSidebar"] .stSelectbox label,
-    [data-testid="stSidebar"] .stRadio label {
-        color: #94A3B8 !important;
-    }
+    [data-testid="stSidebar"] hr { border-color: #334155; }
 
-    /* Card containers */
-    .metric-card {
-        background: white;
-        border-radius: 12px;
-        padding: 24px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+    /* ── Toolbar header bar ── */
+    .toolbar {
+        background: #1E293B;
+        color: #F8FAFC;
+        padding: 10px 20px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        font-size: 13px;
+        border: 1px solid #334155;
+    }
+    .toolbar .app-title {
+        font-weight: 700;
+        font-size: 15px;
+        letter-spacing: 0.3px;
+    }
+    .toolbar .status {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+    }
+    .toolbar .status-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12px;
+        color: #94A3B8;
+    }
+    .toolbar .dot {
+        width: 7px; height: 7px; border-radius: 50%; display: inline-block;
+    }
+    .dot-green { background: #22C55E; }
+    .dot-yellow { background: #EAB308; }
+    .dot-red { background: #EF4444; }
+
+    /* ── Panel / Section containers ── */
+    .panel {
+        background: #FFFFFF;
         border: 1px solid #E2E8F0;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        text-align: center;
+        border-radius: 4px;
+        margin-bottom: 8px;
     }
-    .metric-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    .metric-card h3 {
-        margin: 0 0 8px 0;
-        font-size: 14px;
-        color: #64748B;
+    .panel-header {
+        background: #F8FAFC;
+        border-bottom: 1px solid #E2E8F0;
+        padding: 8px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #475569;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
-    .metric-card .value {
-        font-size: 32px;
+    .panel-body {
+        padding: 12px 14px;
+    }
+
+    /* ── KPI row ── */
+    .kpi {
+        text-align: center;
+        padding: 10px 8px;
+    }
+    .kpi .kpi-value {
+        font-size: 26px;
         font-weight: 700;
-        margin: 0;
+        line-height: 1.1;
     }
-    .metric-card .subtitle {
-        font-size: 13px;
-        color: #94A3B8;
-        margin-top: 4px;
-    }
-
-    /* Hero section */
-    .hero {
-        background: linear-gradient(135deg, #0077B6 0%, #023E8A 50%, #03045E 100%);
-        border-radius: 16px;
-        padding: 48px 40px;
-        color: white;
-        margin-bottom: 32px;
-        position: relative;
-        overflow: hidden;
-    }
-    .hero::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        right: -20%;
-        width: 400px;
-        height: 400px;
-        background: rgba(255,255,255,0.05);
-        border-radius: 50%;
-    }
-    .hero h1 {
-        font-size: 40px;
-        font-weight: 800;
-        margin: 0 0 8px 0;
-        color: white;
-    }
-    .hero .tagline {
-        font-size: 18px;
-        color: #90CAF9;
-        margin-bottom: 16px;
-        font-weight: 400;
-    }
-    .hero .stat {
-        display: inline-block;
-        background: rgba(255,255,255,0.12);
-        border-radius: 8px;
-        padding: 8px 16px;
-        margin-right: 12px;
-        margin-top: 8px;
-        font-size: 14px;
-        color: #E3F2FD;
-        backdrop-filter: blur(4px);
-    }
-
-    /* Feature grid */
-    .feature-card {
-        background: white;
-        border-radius: 12px;
-        padding: 24px;
-        border: 1px solid #E2E8F0;
-        height: 100%;
-        transition: all 0.2s ease;
-    }
-    .feature-card:hover {
-        border-color: #0077B6;
-        box-shadow: 0 4px 12px rgba(0,119,182,0.1);
-    }
-    .feature-card .icon {
-        font-size: 28px;
-        margin-bottom: 12px;
-    }
-    .feature-card h4 {
-        margin: 0 0 8px 0;
-        color: #1B2A4A;
-        font-size: 16px;
-    }
-    .feature-card p {
-        margin: 0;
+    .kpi .kpi-label {
+        font-size: 11px;
         color: #64748B;
-        font-size: 14px;
-        line-height: 1.5;
-    }
-
-    /* Section headers */
-    .section-header {
-        font-size: 13px;
         text-transform: uppercase;
-        letter-spacing: 1px;
-        color: #0077B6;
-        font-weight: 600;
-        margin-bottom: 4px;
+        letter-spacing: 0.5px;
+        margin-top: 2px;
+    }
+    .kpi .kpi-sub {
+        font-size: 11px;
+        color: #94A3B8;
     }
 
-    /* Status badge */
-    .status-badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 12px;
+    /* ── Data grid row ── */
+    .grid-row {
+        display: flex;
+        border-bottom: 1px solid #F1F5F9;
+        padding: 6px 14px;
+        font-size: 13px;
+    }
+    .grid-row:hover { background: #F8FAFC; }
+    .grid-row .col-label {
+        width: 180px;
+        color: #64748B;
+        font-weight: 500;
+        flex-shrink: 0;
+    }
+    .grid-row .col-value {
+        color: #1E293B;
         font-weight: 600;
     }
-    .status-ready { background: #D1FAE5; color: #065F46; }
-    .status-pending { background: #FEF3C7; color: #92400E; }
+
+    /* ── Module list items ── */
+    .module-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 14px;
+        border-bottom: 1px solid #F1F5F9;
+        font-size: 13px;
+        color: #334155;
+    }
+    .module-item:last-child { border-bottom: none; }
+    .module-item .mod-icon {
+        width: 28px; height: 28px; border-radius: 4px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 14px; background: #EFF6FF; flex-shrink: 0;
+    }
+    .module-item .mod-name { font-weight: 600; }
+    .module-item .mod-desc { color: #64748B; font-size: 12px; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Hero Section ─────────────────────────────────────────────────────────────
-st.markdown("""
-<div class="hero">
-    <h1>BanglaHealth-AI</h1>
-    <div class="tagline">Explainable AI for Patient Risk Stratification in Low-Resource Clinical Settings</div>
-    <div>
-        <span class="stat">4 ML Models</span>
-        <span class="stat">SHAP Explanations</span>
-        <span class="stat">3-Tier Risk Scoring</span>
-        <span class="stat">Real-Time Predictions</span>
+# ── Data ─────────────────────────────────────────────────────────────────────
+models_dir = PROJECT_ROOT / "models"
+models_exist = models_dir.exists() and any(models_dir.glob("*.joblib"))
+model_count = len(list(models_dir.glob("*.joblib"))) - 2 if models_exist else 0
+
+# ── Toolbar ──────────────────────────────────────────────────────────────────
+dot = "dot-green" if models_exist else "dot-red"
+status_text = f"{model_count} models ready" if models_exist else "No models"
+
+st.markdown(f"""
+<div class="toolbar">
+    <div class="app-title">BanglaHealth-AI &mdash; Clinical Risk Stratification System</div>
+    <div class="status">
+        <div class="status-item"><span class="dot {dot}"></span> {status_text}</div>
+        <div class="status-item"><span class="dot dot-green"></span> 2 datasets loaded</div>
+        <div class="status-item"><span class="dot dot-green"></span> System online</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# ── Key Metrics ──────────────────────────────────────────────────────────────
-st.markdown('<p class="section-header">Project Overview</p>', unsafe_allow_html=True)
+# ── KPI Row ──────────────────────────────────────────────────────────────────
+c1, c2, c3, c4, c5 = st.columns(5)
 
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
+with c1:
     st.markdown("""
-    <div class="metric-card">
-        <h3>Physicians / 1K People</h3>
-        <p class="value" style="color: #DC2626;">0.58</p>
-        <p class="subtitle">Bangladesh (WHO, 2022)</p>
-    </div>
+    <div class="panel"><div class="kpi">
+        <div class="kpi-value" style="color:#DC2626;">0.58</div>
+        <div class="kpi-label">Physicians / 1K</div>
+        <div class="kpi-sub">Bangladesh WHO 2022</div>
+    </div></div>
+    """, unsafe_allow_html=True)
+with c2:
+    st.markdown("""
+    <div class="panel"><div class="kpi">
+        <div class="kpi-value" style="color:#2563EB;">1,071</div>
+        <div class="kpi-label">Total Patients</div>
+        <div class="kpi-sub">768 + 303 samples</div>
+    </div></div>
+    """, unsafe_allow_html=True)
+with c3:
+    st.markdown("""
+    <div class="panel"><div class="kpi">
+        <div class="kpi-value" style="color:#2563EB;">4</div>
+        <div class="kpi-label">ML Models</div>
+        <div class="kpi-sub">LR / RF / XGB / LGBM</div>
+    </div></div>
+    """, unsafe_allow_html=True)
+with c4:
+    st.markdown("""
+    <div class="panel"><div class="kpi">
+        <div class="kpi-value" style="color:#2563EB;">3</div>
+        <div class="kpi-label">Risk Tiers</div>
+        <div class="kpi-sub">Low / Medium / High</div>
+    </div></div>
+    """, unsafe_allow_html=True)
+with c5:
+    st.markdown("""
+    <div class="panel"><div class="kpi">
+        <div class="kpi-value" style="color:#059669;">SHAP</div>
+        <div class="kpi-label">Explainability</div>
+        <div class="kpi-sub">Per-prediction</div>
+    </div></div>
     """, unsafe_allow_html=True)
 
-with col2:
+# ── Two-column layout ───────────────────────────────────────────────────────
+col_left, col_right = st.columns([3, 2])
+
+with col_left:
+    # Model Performance Panel
+    st.markdown('<div class="panel"><div class="panel-header">Model Performance Summary</div><div class="panel-body">', unsafe_allow_html=True)
+
+    if models_exist:
+        tab_d, tab_h = st.tabs(["Diabetes", "Heart Disease"])
+        for tab, ds_key, ds_label in [(tab_d, "diabetes", "Diabetes"), (tab_h, "heart", "Heart Disease")]:
+            with tab:
+                comp_file = PROJECT_ROOT / "outputs" / f"{ds_key}_model_comparison.csv"
+                if comp_file.exists():
+                    df = pd.read_csv(comp_file)
+                    st.dataframe(
+                        df.style.highlight_max(
+                            subset=["F1-Macro", "ROC-AUC", "Precision (macro)", "Recall (macro)"],
+                            color="#DBEAFE"
+                        ),
+                        use_container_width=True, hide_index=True, height=180,
+                    )
+                    best = df.loc[df["F1-Macro"].idxmax()]
+                    st.caption(f"Best: **{best['Model']}** — F1-Macro: {best['F1-Macro']:.4f} | ROC-AUC: {best['ROC-AUC']:.4f}")
+                else:
+                    st.caption("Run training notebooks to generate results.")
+    else:
+        st.caption("No trained models. Run notebooks/03_model_training.ipynb first.")
+
+    st.markdown('</div></div>', unsafe_allow_html=True)
+
+    # Pipeline Panel
     st.markdown("""
-    <div class="metric-card">
-        <h3>Datasets</h3>
-        <p class="value" style="color: #0077B6;">2</p>
-        <p class="subtitle">Diabetes + Heart Disease</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-with col3:
-    st.markdown("""
-    <div class="metric-card">
-        <h3>Total Patients</h3>
-        <p class="value" style="color: #0077B6;">1,071</p>
-        <p class="subtitle">768 Diabetes + 303 Heart</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-with col4:
-    st.markdown("""
-    <div class="metric-card">
-        <h3>Risk Levels</h3>
-        <p class="value" style="color: #059669;">3</p>
-        <p class="subtitle">Low / Medium / High</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-# ── Model Status ─────────────────────────────────────────────────────────────
-models_dir = PROJECT_ROOT / "models"
-models_exist = models_dir.exists() and any(models_dir.glob("*.joblib"))
-
-if models_exist:
-    # Load comparison results if available
-    import pandas as pd
-    st.markdown('<p class="section-header">Model Performance</p>', unsafe_allow_html=True)
-    col_d, col_h = st.columns(2)
-
-    with col_d:
-        comp_file = PROJECT_ROOT / "outputs" / "diabetes_model_comparison.csv"
-        if comp_file.exists():
-            df = pd.read_csv(comp_file)
-            best = df.loc[df["F1-Macro"].idxmax()]
-            st.markdown(f"""
-            <div class="metric-card">
-                <h3>Diabetes — Best Model</h3>
-                <p class="value" style="color: #059669;">{best['F1-Macro']:.2%}</p>
-                <p class="subtitle">{best['Model']} (F1-Macro)</p>
-            </div>
-            """, unsafe_allow_html=True)
-
-    with col_h:
-        comp_file = PROJECT_ROOT / "outputs" / "heart_model_comparison.csv"
-        if comp_file.exists():
-            df = pd.read_csv(comp_file)
-            best = df.loc[df["F1-Macro"].idxmax()]
-            st.markdown(f"""
-            <div class="metric-card">
-                <h3>Heart Disease — Best Model</h3>
-                <p class="value" style="color: #059669;">{best['F1-Macro']:.2%}</p>
-                <p class="subtitle">{best['Model']} (F1-Macro)</p>
-            </div>
-            """, unsafe_allow_html=True)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-# ── Features Grid ────────────────────────────────────────────────────────────
-st.markdown('<p class="section-header">Features</p>', unsafe_allow_html=True)
-
-features = [
-    ("🩺", "Patient Prediction", "Enter patient data and get instant risk assessment with SHAP explanations and PDF reports."),
-    ("📊", "Batch Prediction", "Upload a CSV file to predict risk levels for hundreds of patients at once."),
-    ("📈", "Model Comparison", "Compare performance metrics across all 4 trained models side by side."),
-    ("🔍", "EDA Dashboard", "Explore the training datasets with interactive charts, distributions, and correlations."),
-    ("🔬", "What-If Analysis", "Adjust patient parameters with sliders and watch risk predictions change in real-time."),
-    ("📄", "PDF Reports", "Download professional patient reports with risk level, SHAP values, and clinical alerts."),
-]
-
-cols = st.columns(3)
-for i, (icon, title, desc) in enumerate(features):
-    with cols[i % 3]:
-        st.markdown(f"""
-        <div class="feature-card">
-            <div class="icon">{icon}</div>
-            <h4>{title}</h4>
-            <p>{desc}</p>
+    <div class="panel">
+        <div class="panel-header">Processing Pipeline</div>
+        <div class="panel-body">
+            <div class="grid-row"><span class="col-label">1. Data Cleaning</span><span class="col-value">Median imputation for zero values</span></div>
+            <div class="grid-row"><span class="col-label">2. Feature Engineering</span><span class="col-value">GlucoseBMI, AgeRisk, InsulinLog, BPCategory</span></div>
+            <div class="grid-row"><span class="col-label">3. Normalization</span><span class="col-value">StandardScaler (mean=0, std=1)</span></div>
+            <div class="grid-row"><span class="col-label">4. Class Balancing</span><span class="col-value">SMOTE on training set only</span></div>
+            <div class="grid-row"><span class="col-label">5. Training</span><span class="col-value">RandomizedSearchCV, 5-fold StratifiedKFold</span></div>
+            <div class="grid-row"><span class="col-label">6. Explainability</span><span class="col-value">SHAP TreeExplainer / LinearExplainer</span></div>
         </div>
-        """, unsafe_allow_html=True)
-        st.markdown("<br>", unsafe_allow_html=True)
+    </div>
+    """, unsafe_allow_html=True)
 
-# ── How It Works ─────────────────────────────────────────────────────────────
-st.markdown('<p class="section-header">How It Works</p>', unsafe_allow_html=True)
-
-steps = [
-    ("1", "Data Input", "Patient clinical measurements are entered or uploaded"),
-    ("2", "Preprocessing", "Feature engineering + StandardScaler normalization"),
-    ("3", "ML Prediction", "Trained model predicts Low / Medium / High risk"),
-    ("4", "SHAP Explain", "Every prediction is explained with feature-level impact"),
-    ("5", "Clinical Alert", "Human-readable insights for healthcare workers"),
-]
-
-cols = st.columns(5)
-for i, (num, title, desc) in enumerate(steps):
-    with cols[i]:
-        st.markdown(f"""
-        <div style="text-align: center; padding: 16px;">
-            <div style="width: 40px; height: 40px; border-radius: 50%; background: #0077B6;
-                        color: white; display: inline-flex; align-items: center; justify-content: center;
-                        font-weight: 700; font-size: 18px; margin-bottom: 8px;">{num}</div>
-            <h4 style="margin: 4px 0; font-size: 14px; color: #1B2A4A;">{title}</h4>
-            <p style="font-size: 12px; color: #64748B; margin: 0;">{desc}</p>
+with col_right:
+    # Modules Panel
+    st.markdown("""
+    <div class="panel">
+        <div class="panel-header">System Modules</div>
+        <div class="panel-body" style="padding: 0;">
+            <div class="module-item">
+                <div class="mod-icon">🩺</div>
+                <div><div class="mod-name">Patient Prediction</div><div class="mod-desc">Single patient risk assessment + PDF report</div></div>
+            </div>
+            <div class="module-item">
+                <div class="mod-icon">📊</div>
+                <div><div class="mod-name">Batch Prediction</div><div class="mod-desc">CSV upload, bulk risk scoring</div></div>
+            </div>
+            <div class="module-item">
+                <div class="mod-icon">📈</div>
+                <div><div class="mod-name">Model Comparison</div><div class="mod-desc">Side-by-side performance metrics</div></div>
+            </div>
+            <div class="module-item">
+                <div class="mod-icon">🔍</div>
+                <div><div class="mod-name">EDA Dashboard</div><div class="mod-desc">Interactive dataset exploration</div></div>
+            </div>
+            <div class="module-item">
+                <div class="mod-icon">🔬</div>
+                <div><div class="mod-name">What-If Analysis</div><div class="mod-desc">Real-time parameter sensitivity</div></div>
+            </div>
+            <div class="module-item">
+                <div class="mod-icon">ℹ️</div>
+                <div><div class="mod-name">About</div><div class="mod-desc">Methodology and references</div></div>
+            </div>
         </div>
-        """, unsafe_allow_html=True)
+    </div>
+    """, unsafe_allow_html=True)
+
+    # System Info Panel
+    st.markdown("""
+    <div class="panel">
+        <div class="panel-header">System Information</div>
+        <div class="panel-body">
+            <div class="grid-row"><span class="col-label">Application</span><span class="col-value">BanglaHealth-AI v1.0</span></div>
+            <div class="grid-row"><span class="col-label">ML Framework</span><span class="col-value">scikit-learn, XGBoost, LightGBM</span></div>
+            <div class="grid-row"><span class="col-label">Explainability</span><span class="col-value">SHAP v0.51</span></div>
+            <div class="grid-row"><span class="col-label">API</span><span class="col-value">FastAPI + Uvicorn</span></div>
+            <div class="grid-row"><span class="col-label">Dashboard</span><span class="col-value">Streamlit + Plotly</span></div>
+            <div class="grid-row"><span class="col-label">Reports</span><span class="col-value">fpdf2 PDF generation</span></div>
+            <div class="grid-row"><span class="col-label">Developer</span><span class="col-value">Md. Rakib</span></div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
-    <div style="text-align: center; padding: 16px 0 8px 0;">
-        <span style="font-size: 32px;">🏥</span>
-        <h2 style="margin: 4px 0; font-size: 18px; color: white !important;">BanglaHealth-AI</h2>
-        <p style="font-size: 12px; color: #64748B !important; margin: 0;">v1.0.0</p>
+    <div style="padding: 10px 4px 4px 4px; border-bottom: 1px solid #334155; margin-bottom: 8px;">
+        <div style="font-size: 14px; font-weight: 700; color: #F8FAFC; letter-spacing: 0.3px;">
+            🏥 BanglaHealth-AI
+        </div>
+        <div style="font-size: 11px; color: #64748B; margin-top: 2px;">
+            Clinical Risk Stratification
+        </div>
     </div>
     """, unsafe_allow_html=True)
-    st.markdown("---")
-
-    if models_exist:
-        model_count = len(list(models_dir.glob("*.joblib"))) - 2  # exclude scalers
-        st.success(f"{model_count} models trained and ready")
-    else:
-        st.warning("Models not trained yet")
-
-    st.markdown("---")
-    st.caption("Developed by Md. Rakib")
-    st.caption("BSc CS, Daffodil International University")
