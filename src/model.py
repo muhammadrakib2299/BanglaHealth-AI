@@ -51,7 +51,6 @@ def _get_model_configs() -> dict:
             "model": XGBClassifier(
                 random_state=42,
                 eval_metric="mlogloss",
-                use_label_encoder=False,
             ),
             "params": {
                 "n_estimators": [100, 200, 300],
