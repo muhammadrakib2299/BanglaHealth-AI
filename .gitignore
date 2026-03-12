@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual Environment
+venv/
+env/
+.venv/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+
+# Data (keep raw, ignore large processed files)
+data/processed/*.csv
+data/processed/*.pkl
+!data/processed/.gitkeep
+
+# Models (binary files)
+models/*.joblib
+models/*.pkl
+!models/.gitkeep
+
+# Outputs
+outputs/*.png
+outputs/*.pdf
+outputs/*.csv
+!outputs/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Streamlit
+.streamlit/secrets.toml
