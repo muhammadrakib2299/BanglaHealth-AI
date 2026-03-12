@@ -149,6 +149,8 @@ if dataset == "Diabetes":
                     st.warning(f"SHAP explanation unavailable: {e}")
 
             # Clinical alerts
+            alerts = []
+            shap_dict = None
             try:
                 if 'sv' in dir():
                     alerts = generate_clinical_alerts(
@@ -157,6 +159,7 @@ if dataset == "Diabetes":
                         feature_names=feature_cols,
                         dataset_type="diabetes",
                     )
+                    shap_dict = {f: round(float(v), 4) for f, v in zip(feature_cols, sv)}
                     st.subheader("Clinical Alerts")
                     for alert in alerts:
                         if alert["severity"] == "high":
@@ -165,6 +168,32 @@ if dataset == "Diabetes":
                             st.success(f"**{alert['feature']}**: {alert['message']}")
             except Exception:
                 pass
+
+            # PDF Download
+            try:
+                from app.components.pdf_report import generate_patient_pdf
+                pdf_bytes = generate_patient_pdf(
+                    patient_data={
+                        "Pregnancies": pregnancies, "Glucose": glucose,
+                        "BloodPressure": blood_pressure, "SkinThickness": skin_thickness,
+                        "Insulin": insulin, "BMI": bmi,
+                        "DiabetesPedigreeFunction": dpf, "Age": age,
+                    },
+                    risk_level=risk_level,
+                    confidence=confidence,
+                    alerts=alerts,
+                    dataset_type="diabetes",
+                    shap_values=shap_dict,
+                )
+                st.download_button(
+                    "Download PDF Report",
+                    pdf_bytes,
+                    f"patient_report_diabetes_{risk_level.lower()}.pdf",
+                    "application/pdf",
+                    use_container_width=True,
+                )
+            except Exception as e:
+                st.caption(f"PDF generation unavailable: {e}")
 
         except FileNotFoundError:
             st.error("Models not trained yet. Please run the training notebooks first.")
@@ -265,6 +294,8 @@ else:
                 except Exception as e:
                     st.warning(f"SHAP explanation unavailable: {e}")
 
+            alerts = []
+            shap_dict = None
             try:
                 if 'sv' in dir():
                     alerts = generate_clinical_alerts(
@@ -273,6 +304,7 @@ else:
                         feature_names=feature_cols,
                         dataset_type="heart",
                     )
+                    shap_dict = {f: round(float(v), 4) for f, v in zip(feature_cols, sv)}
                     st.subheader("Clinical Alerts")
                     for alert in alerts:
                         if alert["severity"] == "high":
@@ -281,6 +313,32 @@ else:
                             st.success(f"**{alert['feature']}**: {alert['message']}")
             except Exception:
                 pass
+
+            # PDF Download
+            try:
+                from app.components.pdf_report import generate_patient_pdf
+                pdf_bytes = generate_patient_pdf(
+                    patient_data={
+                        "age": h_age, "sex": h_sex, "cp": h_cp, "trestbps": h_trestbps,
+                        "chol": h_chol, "fbs": h_fbs, "restecg": h_restecg,
+                        "thalach": h_thalach, "exang": h_exang, "oldpeak": h_oldpeak,
+                        "slope": h_slope, "ca": h_ca, "thal": h_thal,
+                    },
+                    risk_level=risk_level,
+                    confidence=confidence,
+                    alerts=alerts,
+                    dataset_type="heart",
+                    shap_values=shap_dict,
+                )
+                st.download_button(
+                    "Download PDF Report",
+                    pdf_bytes,
+                    f"patient_report_heart_{risk_level.lower()}.pdf",
+                    "application/pdf",
+                    use_container_width=True,
+                )
+            except Exception as e:
+                st.caption(f"PDF generation unavailable: {e}")
 
         except FileNotFoundError:
             st.error("Models not trained yet. Please run the training notebooks first.")
