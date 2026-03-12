@@ -10,6 +10,8 @@
 - Explains every prediction using **SHAP** (SHapley Additive exPlanations)
 - Generates **human-readable clinical alerts** (e.g., "High glucose significantly increases diabetes risk")
 - Compares **4 ML models**: Logistic Regression, Random Forest, XGBoost, LightGBM
+- Evaluates **fairness** across demographic groups (age, sex, BMI)
+- Provides **interactive dashboard** with What-If Analysis
 
 ## Tech Stack
 
@@ -18,76 +20,169 @@
 | ML/Data | Python 3.12, scikit-learn, XGBoost, LightGBM, SHAP, pandas |
 | API | FastAPI, Pydantic, Uvicorn |
 | Dashboard | Streamlit, Plotly |
+| Reports | fpdf2 (PDF generation) |
 | Testing | pytest, ruff |
+| CI/CD | GitHub Actions |
+| DevOps | Docker, docker-compose |
 
 ## Quick Start
 
+### Option 1: Local Setup
+
 ```bash
 # Clone
-git clone https://github.com/YOUR_USERNAME/BanglaHealth-AI.git
+git clone https://github.com/muhammadrakib2299/BanglaHealth-AI.git
 cd BanglaHealth-AI
 
-# Setup
+# Automated setup
+bash setup.sh
+
+# Or manual setup
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
-# Run notebooks (training)
+# Run notebooks (train models)
 jupyter notebook notebooks/
 
-# Run API
+# Launch dashboard
+streamlit run app/app.py
+
+# Launch API
 uvicorn api.main:app --reload
 
-# Run Dashboard
-streamlit run app/app.py
+# Run tests
+pytest tests/ -v
+```
+
+### Option 2: Docker
+
+```bash
+# Run everything with one command
+docker-compose up --build
+
+# API: http://localhost:8000/docs
+# Dashboard: http://localhost:8501
 ```
 
 ## Project Structure
 
 ```
 BanglaHealth-AI/
-├── data/               # Raw and processed datasets
-├── notebooks/          # 5 Jupyter notebooks (EDA → Explainability)
-├── src/                # Core ML pipeline modules
-├── api/                # FastAPI REST endpoints
-├── app/                # Streamlit interactive dashboard
-├── models/             # Saved trained models (.joblib)
-├── outputs/            # Generated plots, reports, CSVs
-└── tests/              # pytest test suite
+├── data/
+│   ├── raw/                    # Original datasets (diabetes.csv, heart.csv)
+│   └── processed/              # Cleaned, engineered datasets
+├── notebooks/
+│   ├── 01_eda.ipynb            # Exploratory Data Analysis
+│   ├── 02_preprocessing.ipynb  # Cleaning & Feature Engineering
+│   ├── 03_model_training.ipynb # Train 4 models with hyperparameter tuning
+│   ├── 04_evaluation.ipynb     # Metrics, confusion matrices, comparison
+│   ├── 05_explainability.ipynb # SHAP analysis & clinical insights
+│   └── 06_fairness_analysis.ipynb  # Demographic fairness evaluation
+├── src/
+│   ├── data_loader.py          # Load & validate datasets
+│   ├── preprocessing.py        # Cleaning, scaling, SMOTE
+│   ├── feature_engineering.py  # Derived clinical features
+│   ├── model.py                # Train, evaluate, save models
+│   ├── explainer.py            # SHAP explanations & clinical alerts
+│   ├── fairness.py             # Fairness analysis across demographics
+│   └── utils.py                # Plotting helpers
+├── api/                        # FastAPI REST endpoints
+│   ├── main.py                 # App entry point
+│   ├── schemas.py              # Pydantic validation
+│   └── routes/                 # Predict & explain endpoints
+├── app/                        # Streamlit dashboard
+│   ├── app.py                  # Main page
+│   ├── pages/
+│   │   ├── patient_predict.py  # Single patient prediction + PDF download
+│   │   ├── batch_predict.py    # CSV batch prediction
+│   │   ├── model_compare.py    # Model comparison charts
+│   │   ├── eda_dashboard.py    # Interactive EDA
+│   │   ├── what_if.py          # What-If Analysis with live SHAP
+│   │   └── about.py            # Methodology & references
+│   └── components/             # Reusable UI components
+├── models/                     # Saved trained models (.joblib)
+├── outputs/                    # Generated plots, reports, CSVs
+├── tests/                      # pytest test suite
+├── Dockerfile                  # Container setup
+├── docker-compose.yml          # Multi-service orchestration
+├── MODEL_CARD.md               # Model documentation (Google standard)
+└── plan.md                     # Detailed project plan
 ```
 
 ## Datasets
 
-| Dataset | Samples | Features | Source |
-|---------|---------|----------|--------|
-| Pima Indians Diabetes | 768 | 8 | UCI / Kaggle |
-| UCI Heart Disease (Cleveland) | 303 | 13 | UCI Repository |
+| Dataset | Samples | Features | Target | Source |
+|---------|---------|----------|--------|--------|
+| Pima Indians Diabetes | 768 | 8 | Diabetes (binary → 3-class risk) | UCI / Kaggle |
+| UCI Heart Disease (Cleveland) | 303 | 13 | Heart Disease (binary → 3-class risk) | UCI Repository |
+
+### 3-Class Risk Stratification
+
+| Level | Description | Clinical Action |
+|-------|-------------|----------------|
+| **Low** | Healthy indicators | Routine monitoring |
+| **Medium** | Borderline values | Enhanced screening |
+| **High** | Disease markers present | Immediate intervention |
 
 ## Model Performance
 
-| Model | F1-Macro | Precision | Recall |
-|-------|----------|-----------|--------|
-| Logistic Regression | - | - | - |
-| Random Forest | - | - | - |
-| XGBoost | - | - | - |
-| LightGBM | - | - | - |
+| Model | F1-Macro | Precision | Recall | ROC-AUC |
+|-------|----------|-----------|--------|---------|
+| Logistic Regression | — | — | — | — |
+| Random Forest | — | — | — | — |
+| XGBoost | — | — | — | — |
+| LightGBM | — | — | — | — |
 
-> Results will be updated after model training.
+> Results will be populated after running the training notebooks.
 
 ## Key Features
 
-- **3-Class Risk Prediction** with confidence scores
-- **SHAP Explanations** for every prediction
-- **What-If Analysis** — adjust patient values, see risk change in real-time
-- **Batch Prediction** — upload CSV, get results for all patients
-- **PDF Report Generation** for clinical use
-- **Model Comparison Dashboard**
+| Feature | Description |
+|---------|-------------|
+| **3-Class Risk Prediction** | Low / Medium / High with confidence scores |
+| **SHAP Explanations** | Feature-level impact for every prediction |
+| **Clinical Alerts** | Human-readable medical insights |
+| **What-If Analysis** | Adjust patient values with sliders, see risk change in real-time |
+| **Batch Prediction** | Upload CSV, get predictions for all patients |
+| **PDF Reports** | Downloadable patient report with risk, alerts, and SHAP values |
+| **Model Comparison** | Side-by-side metrics for all 4 models |
+| **Fairness Analysis** | Performance evaluation across age, sex, and BMI groups |
+| **REST API** | FastAPI endpoints with auto-generated Swagger docs |
+| **Interactive EDA** | Explore datasets with interactive Plotly charts |
+
+## Methodology
+
+1. **Data Cleaning** — Replace biologically impossible zeros with median imputation
+2. **Feature Engineering** — GlucoseBMI (metabolic interaction), AgeRisk, InsulinLog, BPCategory
+3. **Preprocessing** — StandardScaler, stratified 80/20 split, SMOTE on training set only
+4. **Training** — 4 models with RandomizedSearchCV, 5-fold StratifiedKFold, F1-Macro optimization
+5. **Explainability** — SHAP TreeExplainer for global and local feature importance
+6. **Fairness** — Evaluate performance gaps across demographic subgroups
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/predict/diabetes` | Single diabetes prediction |
+| POST | `/predict/heart` | Single heart disease prediction |
+| POST | `/predict/diabetes/batch` | Batch diabetes prediction (CSV) |
+| POST | `/predict/heart/batch` | Batch heart disease prediction (CSV) |
+| POST | `/explain/diabetes` | SHAP explanation for diabetes |
+| POST | `/explain/heart` | SHAP explanation for heart disease |
+| GET | `/models` | List available trained models |
+| GET | `/docs` | Interactive Swagger documentation |
+
+## Documentation
+
+- [**PROJECT PLAN**](plan.md) — Detailed implementation roadmap
+- [**MODEL CARD**](MODEL_CARD.md) — Model documentation following Google's standard
 
 ## Author
 
 **Md. Rakib**
-Junior Software Developer, Combosoft Ltd.
-BSc Computer Science, Daffodil International University
+- Junior Software Developer, Combosoft Ltd.
+- BSc Computer Science, Daffodil International University
 
 ## License
 

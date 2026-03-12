@@ -1,0 +1,12 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+.git/
+.github/
+.env
+*.egg-info/
+.ipynb_checkpoints/
+.claude/
+banglahealth_guide.jsx
+BanglaHealth_AI_Project_Guide.docx
