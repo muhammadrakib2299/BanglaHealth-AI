@@ -472,4 +472,6 @@ curl -X POST http://localhost:8000/predict/diabetes \
 
 ## License
 
-MIT License
+MIT License — see the [LICENSE](LICENSE) file for details.
+
+The license covers the code. The Pima Indians Diabetes and UCI Heart Disease files in `data/` are third-party datasets and keep their original terms (see [Datasets](#datasets)).
